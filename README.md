@@ -1,0 +1,2 @@
+# UnityEditorAssetDependencySearch
+Unity アセットの依存を確認するツール
