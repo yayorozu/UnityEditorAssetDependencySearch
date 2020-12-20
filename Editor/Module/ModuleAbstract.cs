@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using UnityEditor;
 using UnityEngine;
 
 namespace Yorozu.EditorTool.Dependency
@@ -21,16 +20,7 @@ namespace Yorozu.EditorTool.Dependency
 
 		protected static Texture2D GetIconTexture(string path)
 		{
-			try
-			{
-				return (Texture2D) EditorGUIUtility.Load(path);
-			}
-			catch
-			{
-				string fileName = Path.GetFileName(path);
-				return UnityEditorInternal.InternalEditorUtility.GetIconForFile(fileName);
-			}
+			return UnityEditorInternal.InternalEditorUtility.GetIconForFile(Path.GetFileName(path));
 		}
-
 	}
 }
