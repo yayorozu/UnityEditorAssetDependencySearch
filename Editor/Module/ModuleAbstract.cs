@@ -17,10 +17,5 @@ namespace Yorozu.EditorTool.Dependency
 		{
 			Window = window;
 		}
-
-		protected static Texture2D GetIconTexture(string path)
-		{
-			return UnityEditorInternal.InternalEditorUtility.GetIconForFile(Path.GetFileName(path));
-		}
 	}
 }
