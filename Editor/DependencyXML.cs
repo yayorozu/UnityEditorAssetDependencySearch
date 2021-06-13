@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Xml;
@@ -13,6 +14,18 @@ namespace Yorozu.EditorTool.Dependency
 	public class DependencyXML : Dictionary<string, DependencyData>
 	{
 		private static readonly string PATH = "Temp/AssetDependency.xml";
+
+		private string[] _filters =
+		{
+			"Scene",
+			"Prefab",
+			"ScriptableObject",
+			"Model",
+			"Material",
+			"AnimatorController",
+			"Animation",
+			"MonoScript",
+		};
 
 		internal static DependencyXML Load()
 		{
@@ -51,7 +64,7 @@ namespace Yorozu.EditorTool.Dependency
 			if (isForce)
 				Clear();
 
-			var filter = "t:Scene t:Prefab t:ScriptableObject t:Model t:Material t:AnimatorController t:Animation";
+			var filter = string.Join(" ", _filters.Select(f => $"t:{f}").ToArray());
 			var findAssets = AssetDatabase.FindAssets(filter, new []{"Assets"});
 
 			void Display(int count)
@@ -65,16 +78,25 @@ namespace Yorozu.EditorTool.Dependency
 
 			Display(0);
 
-			var divide = Mathf.Max(50, Mathf.FloorToInt(findAssets.Length / 100f));
-			for (var i = 0; i < findAssets.Length; i++)
+			try
 			{
-				if (i % divide == 0)
-					Display(i);
+				var divide = Mathf.Max(50, Mathf.FloorToInt(findAssets.Length / 100f));
+				for (var i = 0; i < findAssets.Length; i++)
+				{
+					if (i % divide == 0)
+						Display(i);
 
-				CreateDependency(findAssets[i], isForce);
+					CreateDependency(findAssets[i], isForce);
+				}
 			}
-
-			EditorUtility.ClearProgressBar();
+			catch (Exception e)
+			{
+				Debug.LogError(e.Message + "\n" + e.StackTrace);
+			}
+			finally
+			{
+				EditorUtility.ClearProgressBar();
+			}
 
 			if (Count <= 0)
 				return;
@@ -105,7 +127,11 @@ namespace Yorozu.EditorTool.Dependency
 				return;
 			}
 
+			if (Skip(path))
+				return;
+
 			var timestamp = File.GetLastWriteTime(path);
+			// 差分無し
 			if (ContainsKey(guid) && !isForce && this[guid].Timestamp == timestamp)
 				return;
 
@@ -126,12 +152,26 @@ namespace Yorozu.EditorTool.Dependency
 				this[dGUID].GUIDs.Add(guid);
 			}
 		}
-	}
 
-	[Serializable]
-	public class DependencyData
-	{
-		public List<string> GUIDs = new List<string>();
-		public DateTime Timestamp;
+		/// <summary>
+		/// スクリプトで Mono継承じゃないクラスはスキップ
+		/// </summary>
+		/// <param name="path"></param>
+		/// <returns></returns>
+		private bool Skip(string path)
+		{
+			var assetType = AssetDatabase.GetMainAssetTypeAtPath(path);
+			if (assetType != typeof(MonoScript))
+				return false;
+
+			var mono = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
+			var type = mono.GetClass();
+			if (type == null)
+			{
+				return true;
+			}
+
+			return !type.IsSubclassOf(typeof(MonoBehaviour));
+		}
 	}
 }
