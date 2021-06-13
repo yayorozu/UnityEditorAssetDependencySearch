@@ -47,22 +47,32 @@ namespace Yorozu.EditorTool.Dependency
 		private void OnGUI()
 		{
 			var rect = new Rect(0, 0, position.width, position.height);
-
 			using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
 			{
-				if (GUILayout.Button("Create Dependency", EditorStyles.toolbarButton))
+				if (DependencyXML.FileExists)
 				{
-					_info.CreateDependencies();
-					Current.OnActive();
+					if (GUILayout.Button("Update", EditorStyles.toolbarButton))
+					{
+						_info.CreateDependencies();
+						Current.OnActive();
+					}
+					if (GUILayout.Button("Rebuild", EditorStyles.toolbarButton))
+					{
+						_info.CreateDependencies(true);
+						Current.OnActive();
+					}
 				}
-
-				if (GUILayout.Button("Force Recreate Dependency", EditorStyles.toolbarButton))
+				else
 				{
-					_info.CreateDependencies(true);
-					Current.OnActive();
+					if (GUILayout.Button("Create", EditorStyles.toolbarButton))
+					{
+						_info.CreateDependencies();
+						Current.OnActive();
+					}
 				}
 
 				GUILayout.FlexibleSpace();
+				GUILayout.Label("機能");
 				using (var check = new EditorGUI.ChangeCheckScope())
 				{
 					_currentIndex = GUILayout.Toolbar(_currentIndex, _modules.Select(m => m.TabName).ToArray(), EditorStyles.toolbarButton);

@@ -27,6 +27,8 @@ namespace Yorozu.EditorTool.Dependency
 			"MonoScript",
 		};
 
+		internal static bool FileExists => File.Exists(PATH);
+
 		internal static DependencyXML Load()
 		{
 			var xml = new DependencyXML();

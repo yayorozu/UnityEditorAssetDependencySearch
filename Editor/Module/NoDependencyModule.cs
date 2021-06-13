@@ -15,7 +15,7 @@ namespace Yorozu.EditorTool.Dependency
 	{
 		internal override string TabName => "Pick No Dependency Assets";
 
-		private readonly List<string> _deleteGUIDs;
+		private List<string> _deleteGUIDs;
 
 		[SerializeField]
 		private TreeViewState _state;
@@ -25,11 +25,11 @@ namespace Yorozu.EditorTool.Dependency
 		{
 			_deleteGUIDs = new List<string>();
 			_state = new TreeViewState();
-			_treeView = new ModuleTreeView(_state, this);
 		}
 
 		internal override void OnActive()
 		{
+			_treeView = new ModuleTreeView(_state, this);
 			_treeView.SetGUIDs(Window.Info.GetNoDependenciesFiles());
 		}
 
