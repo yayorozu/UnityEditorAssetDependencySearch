@@ -16,6 +16,7 @@ namespace Yorozu.EditorTool.Dependency
 			showBorder = true;
 			showAlternatingRowBackgrounds = true;
 			baseIndent += 15f;
+			Reload();
 		}
 
 		protected override TreeViewItem BuildRoot()

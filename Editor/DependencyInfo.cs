@@ -71,8 +71,11 @@ namespace Yorozu.EditorTool.Dependency
 
 			foreach (var path in paths)
 			{
-				var parent = CreateDirectory(path, ref cache);
 				var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+				if (obj == null)
+					continue;
+
+				var parent = CreateDirectory(path, ref cache);
 				var fileName = Path.GetFileName(path);
 				var guid = AssetDatabase.AssetPathToGUID(path);
 				var item = new AssetTreeViewItem
@@ -112,6 +115,9 @@ namespace Yorozu.EditorTool.Dependency
 					continue;
 
 				var dir = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dirPath);
+				if (dir == null)
+					continue;
+
 				var guid = AssetDatabase.AssetPathToGUID(dirPath);
 				var item = new AssetTreeViewItem
 				{

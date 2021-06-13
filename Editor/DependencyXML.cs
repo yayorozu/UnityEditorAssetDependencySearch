@@ -25,6 +25,8 @@ namespace Yorozu.EditorTool.Dependency
 			"AnimatorController",
 			"Animation",
 			"MonoScript",
+			"Texture",
+			"SpriteAtlas",
 		};
 
 		internal static bool FileExists => File.Exists(PATH);
