@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 
@@ -19,11 +20,20 @@ namespace Yorozu.EditorTool.Dependency
 			Reload();
 		}
 
-		protected override TreeViewItem BuildRoot()
+		protected override TreeViewItem BuildRoot() => new TreeViewItem(0, -1, "root");
+
+		protected override IList<TreeViewItem> BuildRows(TreeViewItem root)
 		{
-			var root = _module.GetTreeView();
+			var rows = base.BuildRows(root);
+			var assetRoot = _module.GetTreeView();
+			if (assetRoot.hasChildren)
+			{
+				foreach (var child in assetRoot.children)
+					rows.Add(child);
+			}
+
 			SetupDepthsFromParentsAndChildren(root);
-			return root;
+			return rows;
 		}
 
 		protected override void RowGUI(RowGUIArgs args)
@@ -45,6 +55,12 @@ namespace Yorozu.EditorTool.Dependency
 						_state.Remove(item);
 				}
 			}
+		}
+
+		protected override void SelectionChanged(IList<int> selectedIds)
+		{
+			
+			base.SelectionChanged(selectedIds);
 		}
 
 		protected override void DoubleClickedItem(int id)

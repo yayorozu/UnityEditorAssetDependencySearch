@@ -54,11 +54,25 @@ namespace Yorozu.EditorTool.Dependency
 		/// <summary>
 		/// 依存が0のファイル一覧を取得
 		/// </summary>
-		internal AssetTreeViewItem GetNoDependencyTree()
+		internal AssetTreeViewItem GetNoDependencyTree(params string[] filters)
 		{
 			var paths = _map.Keys.Where(k => _map[k].GUIDs.Count <= 0)
 				.Select(AssetDatabase.GUIDToAssetPath)
-				.Where(path => !path.Contains("Resources/") && !path.EndsWith(".unity"));
+				// リソースフォルダとSceneは対象外
+				.Where(path => !path.Contains("/Resources/") && !path.EndsWith(".unity"))
+				// ファイルが消えてても対象外
+				.Where(path => !string.IsNullOrEmpty(path))
+			;
+
+			// フィルタ指定があれば適応
+			if (filters.Any())
+			{
+				paths = paths.Where(path =>
+				{
+					var assetType = AssetDatabase.GetMainAssetTypeAtPath(path);
+					return filters.Contains(assetType.Name);
+				});
+			}
 
 			var root = new AssetTreeViewItem
 			{
@@ -75,19 +89,24 @@ namespace Yorozu.EditorTool.Dependency
 				if (obj == null)
 					continue;
 
-				var parent = CreateDirectory(path, ref cache);
-				var fileName = Path.GetFileName(path);
-				var guid = AssetDatabase.AssetPathToGUID(path);
-				var item = new AssetTreeViewItem
+				try
 				{
-					id = obj.GetInstanceID(),
-					displayName = fileName,
-					icon = GetIconTexture(path),
-					guid = guid,
-				};
-				parent.AddChild(item);
-
-				Debug.Log(fileName);
+					var parent = CreateDirectory(path, ref cache);
+					var fileName = Path.GetFileName(path);
+					var guid = AssetDatabase.AssetPathToGUID(path);
+					var item = new AssetTreeViewItem
+					{
+						id = obj.GetInstanceID(),
+						displayName = fileName,
+						icon = GetIconTexture(path),
+						guid = guid,
+					};
+					parent.AddChild(item);
+				}
+				catch
+				{
+					// Fileが消えてたら例外でるかも
+				}
 			}
 
 			return root;

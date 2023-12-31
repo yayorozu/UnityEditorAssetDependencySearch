@@ -15,28 +15,20 @@ namespace Yorozu.EditorTool.Dependency
 	{
 		private static readonly string PATH = "Temp/AssetDependency.xml";
 
-		private string[] _filters =
-		{
-			"Scene",
-			"Prefab",
-			"ScriptableObject",
-			"Model",
-			"Material",
-			"AnimatorController",
-			"Animation",
-			"MonoScript",
-			"Texture",
-			"SpriteAtlas",
-		};
-
 		internal static bool FileExists => File.Exists(PATH);
+
+		/// <summary>
+		/// 依存無しアセットの種類
+		/// </summary>
+		internal IEnumerable<string> NoDependencyAssetTypes => _noDependencyAssetTypes;
+		private string[] _noDependencyAssetTypes = new string[0];
 
 		internal static DependencyXML Load()
 		{
 			var xml = new DependencyXML();
 			try
 			{
-				if (File.Exists(PATH))
+				if (FileExists)
 				{
 					var serializer = new DataContractSerializer(typeof(DependencyXML));
 					using (var xr = XmlReader.Create(PATH))
@@ -44,11 +36,18 @@ namespace Yorozu.EditorTool.Dependency
 						xml = (DependencyXML) serializer.ReadObject(xr);
 					}
 
-					foreach (var key in xml.Keys)
+					var assetPaths = xml.Keys.Select(AssetDatabase.GUIDToAssetPath);
+					var deleteAssets = assetPaths.Where(string.IsNullOrEmpty);
+
+					// 削除されたファイルがあれば消す
+					if (deleteAssets.Any())
 					{
-						var path = AssetDatabase.GUIDToAssetPath(key);
-						if (string.IsNullOrEmpty(path))
-							xml.Remove(key);
+						foreach (var path in deleteAssets)
+						{
+							xml.Remove(AssetDatabase.AssetPathToGUID(path));
+						}
+						xml.CacheAssetType();
+						WriteXML(xml);
 					}
 				}
 			}
@@ -68,15 +67,15 @@ namespace Yorozu.EditorTool.Dependency
 			if (isForce)
 				Clear();
 
-			var filter = string.Join(" ", _filters.Select(f => $"t:{f}").ToArray());
-			var findAssets = AssetDatabase.FindAssets(filter, new []{"Assets"});
+			// 全アセットをなめる
+			var allAssets = AssetDatabase.FindAssets("");
 
 			void Display(int count)
 			{
 				EditorUtility.DisplayProgressBar(
 					"Processing",
-					$"Create Dependency Map ({count} / {findAssets.Length})",
-					count / (float) findAssets.Length
+					$"Create Dependency Map ({count} / {allAssets.Length})",
+					count / (float) allAssets.Length
 				);
 			}
 
@@ -84,13 +83,13 @@ namespace Yorozu.EditorTool.Dependency
 
 			try
 			{
-				var divide = Mathf.Max(50, Mathf.FloorToInt(findAssets.Length / 100f));
-				for (var i = 0; i < findAssets.Length; i++)
+				var divide = Mathf.Max(50, Mathf.FloorToInt(allAssets.Length / 100f));
+				for (var i = 0; i < allAssets.Length; i++)
 				{
 					if (i % divide == 0)
 						Display(i);
 
-					CreateDependency(findAssets[i], isForce);
+					CreateDependency(allAssets[i], isForce);
 				}
 			}
 			catch (Exception e)
@@ -105,6 +104,16 @@ namespace Yorozu.EditorTool.Dependency
 			if (Count <= 0)
 				return;
 
+			CacheAssetType();
+
+			WriteXML(this);
+		}
+
+		/// <summary>
+		/// ファイル書き出し
+		/// </summary>
+		private static void WriteXML(DependencyXML obj)
+		{
 			var serializer = new DataContractSerializer(typeof(DependencyXML));
 			var settings = new XmlWriterSettings();
 			settings.Encoding = new UTF8Encoding(false);
@@ -113,7 +122,7 @@ namespace Yorozu.EditorTool.Dependency
 			{
 				using (var xw = XmlWriter.Create(PATH, settings))
 				{
-					serializer.WriteObject(xw, this);
+					serializer.WriteObject(xw, obj);
 				}
 			}
 			catch
@@ -158,6 +167,18 @@ namespace Yorozu.EditorTool.Dependency
 		}
 
 		/// <summary>
+		/// アセットの種類をキャッシュ
+		/// </summary>
+		private void CacheAssetType()
+		{
+			_noDependencyAssetTypes = Keys
+				.Select(AssetDatabase.GUIDToAssetPath)
+				.GroupBy(AssetDatabase.GetMainAssetTypeAtPath)
+				.Select(g => g.Key.ToString())
+				.ToArray();
+		}
+
+		/// <summary>
 		/// スクリプトで Mono継承じゃないクラスはスキップ
 		/// </summary>
 		/// <param name="path"></param>
@@ -171,9 +192,10 @@ namespace Yorozu.EditorTool.Dependency
 			var mono = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
 			var type = mono.GetClass();
 			if (type == null)
-			{
 				return true;
-			}
+
+			if (type.IsAbstract)
+				return true;
 
 			return !type.IsSubclassOf(typeof(MonoBehaviour));
 		}

@@ -27,15 +27,15 @@ namespace Yorozu.EditorTool.Dependency
 
 		private void OnEnable()
 		{
-			if (_modules != null)
-				return;
-
-			_modules = AppDomain.CurrentDomain
-				.GetAssemblies()
-				.SelectMany(a => a.GetTypes())
-				.Where(t => t.IsSubclassOf(typeof(ModuleAbstract)))
-				.Select(t => Activator.CreateInstance(t, true) as ModuleAbstract)
-				.ToArray();
+			if (_modules == null)
+			{
+				_modules = AppDomain.CurrentDomain
+					.GetAssemblies()
+					.SelectMany(a => a.GetTypes())
+					.Where(t => t.IsSubclassOf(typeof(ModuleAbstract)))
+					.Select(t => Activator.CreateInstance(t, true) as ModuleAbstract)
+					.ToArray();
+			}
 
 			foreach (var module in _modules)
 				module.SetWindow(this);
@@ -49,26 +49,23 @@ namespace Yorozu.EditorTool.Dependency
 			var rect = new Rect(0, 0, position.width, position.height);
 			using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
 			{
+				if (GUILayout.Button(DependencyXML.FileExists ? "Update" : "Create", EditorStyles.toolbarButton))
+				{
+					_info.CreateDependencies();
+					Current.OnActive();
+				}
 				if (DependencyXML.FileExists)
 				{
-					if (GUILayout.Button("Update", EditorStyles.toolbarButton))
-					{
-						_info.CreateDependencies();
-						Current.OnActive();
-					}
 					if (GUILayout.Button("Rebuild", EditorStyles.toolbarButton))
 					{
 						_info.CreateDependencies(true);
 						Current.OnActive();
 					}
 				}
-				else
+
+				if (GUILayout.Button("Filter", EditorStyles.toolbarButton))
 				{
-					if (GUILayout.Button("Create", EditorStyles.toolbarButton))
-					{
-						_info.CreateDependencies();
-						Current.OnActive();
-					}
+					//PopupWindow.Show(GUILayoutUtility.GetLastRect(), new DependencyFilterPopup());
 				}
 
 				GUILayout.FlexibleSpace();

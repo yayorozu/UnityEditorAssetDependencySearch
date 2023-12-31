@@ -1,0 +1,16 @@
+{
+  "name": "yorozu.tool.asset-dependency-search",
+  "version": "1.0.0",
+  "displayName": "Asset Dependency Search",
+  "description": "",
+  "unity": "2020.3",
+  "keywords": [
+    "EditorTool",
+    "Yorozu"
+  ],
+  "author": {
+    "name": "Yorozu",
+    "email": "hatch.tech.eng@gmail.com",
+    "url": "https://github.com/yayorozu"
+  }
+}
